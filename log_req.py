@@ -1,12 +1,11 @@
 import subprocess
 import datetime as dt
-import socket
 import sched
 import time
 
 
 STORE_DIR: str = './'
-STORE_FILE: str = 'requirements.txt'
+STORE_FILE: str = 'log.txt'
 STORE_PATH: str = STORE_DIR + STORE_FILE
 
 NETSTAT_COMMAND: list[str] = ['netstat', '-nutw']
@@ -17,7 +16,6 @@ NON_PUBLIC_IP_START = ['10.', '172.', '192.', '127.']
 
 class Connection:
     __ip: str
-    __to: str
     __time: str
     __sec: float
 
@@ -31,30 +29,20 @@ class Connection:
 
     def __init__(self, ip: str) -> None:
         self.__ip = ip
-        self.__resolve()
         self.__time = Connection.__get_now()
         self.__sec = Connection.__get_time()
 
-    def __resolve(self) -> None:
-        try:
-            self.__to, *_ = socket.gethostbyaddr(self.__ip)
-        except socket.herror:
-            self.__to = self.__ip
-
-    def is_same(self, ip: str, to: str = '') -> bool:
-        return self.get_ip() == ip or self.get_to() == to
+    def is_same(self, ip: str) -> bool:
+        return self.get_ip() == ip
 
     def is_in_time(self) -> bool:
         return Connection.__get_time() - self.__sec < 120
 
-    def get_info(self) -> str:
-        return f'DOMAIN: {self.__to: <64} | TIME: {self.__time}\n'
+    def to_str(self) -> str:
+        return f'TIME: {self.__time} IP: {self.__ip}\n'
 
     def get_ip(self) -> str:
         return self.__ip
-
-    def get_to(self) -> str:
-        return self.__to
 
 
 class Log:
@@ -106,7 +94,7 @@ class Log:
     def __store_scan(self) -> None:
         with open(STORE_PATH, 'a') as f:
             for connection in self.__scan_connections:
-                f.write(connection.get_info())
+                f.write(connection.to_str())
 
 
 if __name__ == '__main__':

@@ -12,15 +12,15 @@ class Entry:
     __resolve: str
     __time: str
 
-    def __init__(self, entry_str: str):
+    def __init__(self, entry_str: str) -> None:
         _, *tmp_time, _, self.__ip = entry_str.strip().split(' ')
         self.__time = ' '.join(tmp_time)
 
-    def resolve(self):
+    def resolve(self) -> None:
         tmp_response = requests.get(API_URL + self.__ip)
         self.__resolve = tmp_response.json()['connection']['org']
 
-    def to_str(self):
+    def to_str(self) -> str:
         return f'TIME: {self.__time} IP: {self.__ip: <15} DOMAIN: {self.__resolve}\n'
 
 
@@ -34,16 +34,16 @@ class Resolver:
         self.__resolved_file = resolved_file
         self.__entries = []
 
-    def load_entries(self):
+    def load_entries(self) -> None:
         with open(self.__ip_file, 'r') as ip_file:
             for line in ip_file.readlines():
                 self.__entries.append(Entry(line))
 
-    def resolve(self):
+    def resolve(self) -> None:
         for e in self.__entries:
             e.resolve()
 
-    def store_resolved(self):
+    def store_resolved(self) -> None:
         with open(self.__resolved_file, 'w') as resolved_file:
             for res in self.__entries:
                 resolved_file.write(res.to_str())

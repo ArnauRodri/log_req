@@ -2,11 +2,17 @@ import subprocess
 import datetime as dt
 import sched
 import time
+import random
+import os
 
 
 STORE_DIR: str = './'
-STORE_FILE: str = 'log.txt'
-STORE_PATH: str = STORE_DIR + STORE_FILE
+STORE_FILE_HEADER: str = 'log-'
+STORE_FILE_ID_START: int = 0
+STORE_FILE_ID_END: int = 999
+STORE_FILE_ID_SIZE: int = 3
+STORE_FILE_ID_CHUNK_SIZE: int = 5
+STORE_FILE_EXTENSION: str = '.txt'
 
 NETSTAT_COMMAND: list[str] = ['netstat', '-nutw']
 AWK_COMMAND: list[str] = ['awk', 'FNR > 6 {print $5}']  # gets all the foreign IPs
@@ -46,6 +52,7 @@ class Connection:
 
 
 class Log:
+    __file_name: str
     __old_scanned: list[Connection]
     __scan_connections: list[Connection]
     __scheduler: sched.scheduler
@@ -60,10 +67,21 @@ class Log:
         awk: bytes = subprocess.check_output(AWK_COMMAND, stdin=netstat.stdout)
         return [ip[:ip.find(':')] for ip in awk.decode('utf-8').split('\n') if ip != '' and Log.__is_public_ip(ip)]
 
+    @staticmethod
+    def __id_generator() -> str:
+        return '-'.join([
+            str(random.randint(STORE_FILE_ID_START, STORE_FILE_ID_END)).zfill(STORE_FILE_ID_SIZE)
+            for _ in range(STORE_FILE_ID_CHUNK_SIZE)
+        ])
+
     def __init__(self) -> None:
         self.__old_scanned = []
         self.__scan_connections = []
         self.__scheduler = sched.scheduler(time.time, time.sleep)
+        self.__generate_file_name()
+
+    def __generate_file_name(self) -> None:
+        self.__file_name = os.path.join(STORE_DIR, STORE_FILE_HEADER + Log.__id_generator() + STORE_FILE_EXTENSION)
 
     def start_logging(self) -> None:
         self.__scheduler.enter(10, 1, self.__scan)
@@ -92,7 +110,7 @@ class Log:
         self.__scan_connections.append(connection)
 
     def __store_scan(self) -> None:
-        with open(STORE_PATH, 'a') as f:
+        with open(self.__file_name, 'a') as f:
             for connection in self.__scan_connections:
                 f.write(connection.to_str())
 
